@@ -199,14 +199,17 @@ itemBuilder: (context, index) {
           showDialog(
             context: context,
             builder: (context) => Dialog(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.memory(
-                    message['data'],
-                    fit: BoxFit.contain,
+              child: SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.8, // Max height is 80% of screen height
+                    maxWidth: MediaQuery.of(context).size.width * 0.9, // Max width is 90% of screen width
                   ),
-                ],
+                  child: Image.memory(
+                    message['data'],
+                    fit: BoxFit.contain, // Ensure image fits within the constraints
+                  ),
+                ),
               ),
             ),
           );
