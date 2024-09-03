@@ -2,22 +2,24 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:peerdart/peerdart.dart';
+import 'package:flutter/services.dart';
 
-class DataConnectionExample extends StatefulWidget {
-  const DataConnectionExample({Key? key}) : super(key: key);
+class ChatPage extends StatefulWidget {
+  const ChatPage({Key? key}) : super(key: key);
 
   @override
-  State<DataConnectionExample> createState() => _DataConnectionExampleState();
+  State<ChatPage> createState() => _ChatPageState();
 }
 
-class _DataConnectionExampleState extends State<DataConnectionExample> {
+class _ChatPageState extends State<ChatPage> {
   Peer peer = Peer(options: PeerOptions(debug: LogLevel.All));
   final TextEditingController _controller = TextEditingController();
+  final TextEditingController _message_controller = TextEditingController();
+
   String? peerId;
   DataConnection? currentConnection; // Track the current connection
   bool connected = false;
   List<String> messages = []; // List to store chat messages
-  Map<String, DataConnection> connections = {}; // Track multiple connections
 
   @override
   void initState() {
@@ -36,7 +38,6 @@ class _DataConnectionExampleState extends State<DataConnectionExample> {
   }
 
   void handleConnection(DataConnection connection) {
-    connections[connection.peer] = connection;
     setState(() {
       connected = true;
     });
@@ -56,9 +57,12 @@ class _DataConnectionExampleState extends State<DataConnectionExample> {
     connection.on("close").listen((_) {
       setState(() {
         connected = false;
-        connections.remove(connection.peer); // Remove closed connection
       });
     });
+
+    if (currentConnection == null) {
+      currentConnection = connection;
+    }
   }
 
   void connect() {
@@ -69,7 +73,6 @@ class _DataConnectionExampleState extends State<DataConnectionExample> {
         setState(() {
           connected = true;
           currentConnection = connection;
-          connections[peerIdToConnect] = connection;
         });
 
         connection.on("data").listen((data) {
@@ -87,7 +90,6 @@ class _DataConnectionExampleState extends State<DataConnectionExample> {
         connection.on("close").listen((_) {
           setState(() {
             connected = false;
-            connections.remove(peerIdToConnect); // Remove closed connection
           });
         });
       });
@@ -95,10 +97,19 @@ class _DataConnectionExampleState extends State<DataConnectionExample> {
   }
 
   void sendHelloWorld() {
+    sendMessage("Hello World!");
+  }
+
+void sendMessageFromInput() {
+    final message = _message_controller.text;
+    sendMessage(message);
+  }
+
+  void sendMessage(String message) {
     if (currentConnection != null) {
-      currentConnection!.send("Hello world!");
+      currentConnection!.send(message);
       setState(() {
-        messages.add("You: Hello world!"); // Add sent message to the list
+        messages.add("You:" + message); // Add sent message to the list
       });
     }
   }
@@ -113,24 +124,44 @@ class _DataConnectionExampleState extends State<DataConnectionExample> {
     }
   }
 
+  void copyAddress() {
+    if (peerId != null) {
+      Clipboard.setData(ClipboardData(text: peerId!)); // Use 'peerId!' to handle nullability
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Address copied to clipboard")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Data Connection Example")),
+      appBar: AppBar(title: const Text("Chat Example")),
       body: Column(
         children: <Widget>[
           // Header displaying connection status
           Container(
             padding: const EdgeInsets.all(8.0),
             color: connected ? Colors.green : Colors.red,
-            child: Text(
-              connected ? "Connected to: ${currentConnection?.peer}" : "Not connected",
-              style: const TextStyle(color: Colors.white, fontSize: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  connected ? "Connected to: ${currentConnection?.peer}" : "Not connected",
+                  style: const TextStyle(color: Colors.white, fontSize: 20),
+                ),
+                if (peerId != null)
+                  IconButton(
+                    icon: const Icon(Icons.copy),
+                    onPressed: copyAddress,
+                    tooltip: "Copy Address",
+                  ),
+              ],
             ),
           ),
           Expanded(
             child: ListView.builder(
-              reverse: true, // Display messages from bottom to top
+              reverse: false, 
               itemCount: messages.length,
               itemBuilder: (context, index) {
                 final message = messages[index];
@@ -151,9 +182,27 @@ class _DataConnectionExampleState extends State<DataConnectionExample> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.send),
+                  icon: const Icon(Icons.connect_without_contact),
                   onPressed: connect,
                   tooltip: "Connect",
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                  child: TextField(
+                    controller: _message_controller,
+                    decoration: const InputDecoration(labelText: "Enter Message"),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: sendMessageFromInput,
+                  tooltip: "Send",
                 ),
               ],
             ),
@@ -165,6 +214,10 @@ class _DataConnectionExampleState extends State<DataConnectionExample> {
                 ElevatedButton(
                   onPressed: sendHelloWorld,
                   child: const Text("Send Hello World"),
+                ),
+                ElevatedButton(
+                  onPressed: sendHelloWorld,
+                  child: const Text("Send Message"),
                 ),
                 ElevatedButton(
                   onPressed: sendBinary,

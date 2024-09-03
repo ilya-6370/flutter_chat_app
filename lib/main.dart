@@ -1,5 +1,6 @@
 import './call_example.dart';
 import './data_connection_example.dart';
+import './chat_page.dart'; // New Chat Page
 import 'package:flutter/material.dart';
 
 void main() {
@@ -9,19 +10,17 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'PeerDart Demo',
+      title: 'PeerDart Chat App',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
       initialRoute: "/",
       routes: {
-        '/': (context) => const MyHomePage(title: "PeerDart Demo"),
-        '/callExample': (context) => const CallExample(),
-        '/dataConnectionExample': (context) => const DataConnectionExample(),
+        '/': (context) => const MyHomePage(title: "PeerDart Chat App"),
+        '/chatPage': (context) => const ChatPage(),  // New unified chat page
       },
     );
   }
@@ -37,12 +36,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  void onPressCall() async {
-    await Navigator.of(context).pushNamed("/callExample");
-  }
-
-  void onPressData() async {
-    await Navigator.of(context).pushNamed("/dataConnectionExample");
+  void onPressChat() async {
+    await Navigator.of(context).pushNamed("/chatPage");
   }
 
   @override
@@ -52,17 +47,9 @@ class _MyHomePageState extends State<MyHomePage> {
           title: Text(widget.title),
         ),
         body: Center(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: <Widget>[
-              ElevatedButton(
-                  onPressed: onPressCall,
-                  child: const Text("Navigate to call example")),
-              ElevatedButton(
-                  onPressed: onPressData,
-                  child: const Text("Navigate to data example"))
-            ],
-          ),
+          child: ElevatedButton(
+              onPressed: onPressChat,
+              child: const Text("Open Chat")),
         ));
   }
 }
