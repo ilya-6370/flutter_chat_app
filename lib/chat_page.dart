@@ -1,8 +1,8 @@
 import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:peerdart/peerdart.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart'; // Import the file_picker package
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key}) : super(key: key);
@@ -17,9 +17,9 @@ class _ChatPageState extends State<ChatPage> {
   final TextEditingController _message_controller = TextEditingController();
 
   String? peerId;
-  DataConnection? currentConnection; // Track the current connection
+  DataConnection? currentConnection;
   bool connected = false;
-  List<String> messages = []; // List to store chat messages
+  List<String> messages = [];
 
   @override
   void initState() {
@@ -31,7 +31,6 @@ class _ChatPageState extends State<ChatPage> {
       });
     });
 
-    // Listen for incoming connections
     peer.on<DataConnection>("connection").listen((event) {
       handleConnection(event);
     });
@@ -44,7 +43,7 @@ class _ChatPageState extends State<ChatPage> {
 
     connection.on("data").listen((data) {
       setState(() {
-        messages.add("Peer ${connection.peer}: $data"); // Add received message to the list
+        messages.add("Peer ${connection.peer}: $data");
       });
     });
 
@@ -77,7 +76,7 @@ class _ChatPageState extends State<ChatPage> {
 
         connection.on("data").listen((data) {
           setState(() {
-            messages.add("Peer $peerIdToConnect: $data"); // Add received message to the list
+            messages.add("Peer $peerIdToConnect: $data");
           });
         });
 
@@ -96,37 +95,48 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  void sendHelloWorld() {
-    sendMessage("Hello World!");
-  }
-
-void sendMessageFromInput() {
-    final message = _message_controller.text;
-    sendMessage(message);
-  }
-
   void sendMessage(String message) {
     if (currentConnection != null) {
       currentConnection!.send(message);
       setState(() {
-        messages.add("You:" + message); // Add sent message to the list
+        messages.add("You: $message");
       });
     }
   }
 
-  void sendBinary() {
+  void sendBinary(Uint8List data) {
     if (currentConnection != null) {
-      final bytes = Uint8List(30);
-      currentConnection!.sendBinary(bytes);
+      currentConnection!.sendBinary(data);
       setState(() {
         messages.add("You sent binary data");
       });
     }
   }
 
+  Future<void> pickAndSendImage() async {
+    if (currentConnection == null) return;
+
+    // Use file_picker to pick an image from the file system
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.image, // Limit to image files
+    );
+
+    if (result != null && result.files.isNotEmpty) {
+      Uint8List? imageData = result.files.single.bytes; // Get the image data
+
+      if (imageData != null) {
+        sendBinary(imageData); // Send the image data as binary
+      } else {
+        print("Failed to send image: No image data found");
+      }
+    } else {
+      print("No image selected.");
+    }
+  }
+
   void copyAddress() {
     if (peerId != null) {
-      Clipboard.setData(ClipboardData(text: peerId!)); // Use 'peerId!' to handle nullability
+      Clipboard.setData(ClipboardData(text: peerId!));
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Address copied to clipboard")),
       );
@@ -139,7 +149,6 @@ void sendMessageFromInput() {
       appBar: AppBar(title: const Text("Chat Example")),
       body: Column(
         children: <Widget>[
-          // Header displaying connection status
           Container(
             padding: const EdgeInsets.all(8.0),
             color: connected ? Colors.green : Colors.red,
@@ -161,7 +170,7 @@ void sendMessageFromInput() {
           ),
           Expanded(
             child: ListView.builder(
-              reverse: false, 
+              reverse: false,
               itemCount: messages.length,
               itemBuilder: (context, index) {
                 final message = messages[index];
@@ -201,7 +210,7 @@ void sendMessageFromInput() {
                 ),
                 IconButton(
                   icon: const Icon(Icons.send),
-                  onPressed: sendMessageFromInput,
+                  onPressed: () => sendMessage(_message_controller.text),
                   tooltip: "Send",
                 ),
               ],
@@ -212,16 +221,12 @@ void sendMessageFromInput() {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: <Widget>[
                 ElevatedButton(
-                  onPressed: sendHelloWorld,
+                  onPressed: pickAndSendImage, // Button to pick and send image
+                  child: const Text("Send Image"),
+                ),
+                ElevatedButton(
+                  onPressed: () => sendMessage("Hello World!"),
                   child: const Text("Send Hello World"),
-                ),
-                ElevatedButton(
-                  onPressed: sendHelloWorld,
-                  child: const Text("Send Message"),
-                ),
-                ElevatedButton(
-                  onPressed: sendBinary,
-                  child: const Text("Send Binary"),
                 ),
               ],
             ),
