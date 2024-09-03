@@ -202,6 +202,9 @@ void sendImageInChunks(Uint8List imageBytes) {
       if (imageData != null) {
         if (imageData.isNotEmpty) {
           sendImageInChunks(imageData);
+          setState(() {
+                messages.add({'type': 'image', 'data': imageData});
+              });
         } else {
           print("Failed to send image: Image data is empty");
         }
