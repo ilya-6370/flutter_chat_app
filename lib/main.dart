@@ -1,5 +1,3 @@
-import './call_example.dart';
-import './data_connection_example.dart';
 import './chat_page.dart'; // New Chat Page
 import 'package:flutter/material.dart';
 
