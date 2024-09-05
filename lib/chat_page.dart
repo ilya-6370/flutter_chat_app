@@ -89,10 +89,10 @@ class _ChatPageState extends State<ChatPage> {
         }
       } else {
         setState(() {
-          messages.add({"type":"text", "data":"Peer ${connection.peer}: $data"});
+          messages
+              .add({"type": "text", "data": "Peer ${connection.peer}: $data"});
         });
       }
-      
     });
 
     connection.on("close").listen((_) {
@@ -157,23 +157,39 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  void sendImageInChunks(Uint8List imageBytes) {
-    if (currentConnection == null) return;
+  void sendImageInChunks(Uint8List imageBytes) async {
+    if (currentConnection != null) {
+      const int chunkSize = 64 * 1024; // 64 KB per chunk
+      int totalChunks = (imageBytes.length / chunkSize).ceil();
 
-    int totalChunks = (imageBytes.length / chunkSize).ceil();
-    currentConnection!
-        .send({'type': 'imageMetadata', 'totalChunks': totalChunks});
-
-    for (int i = 0; i < totalChunks; i++) {
-      int start = i * chunkSize;
-      int end = (start + chunkSize > imageBytes.length)
-          ? imageBytes.length
-          : start + chunkSize;
+      // Send metadata first
       currentConnection!.send({
-        'type': 'imageChunk',
-        'data': imageBytes.sublist(start, end).toList(),
-        'index': i
+        'type': 'imageMetadata',
+        'totalChunks': totalChunks,
       });
+
+      // Send image chunks with a delay to avoid overloading the data channel
+      for (int i = 0; i < totalChunks; i++) {
+        int start = i * chunkSize;
+        int end = (start + chunkSize > imageBytes.length)
+            ? imageBytes.length
+            : start + chunkSize;
+        Uint8List chunk = imageBytes.sublist(start, end);
+
+        // Convert Uint8List to List<int> for sending
+        List<int> chunkList = chunk.toList();
+
+        // Send chunk with index and total number of chunks
+        currentConnection!.send({
+          'type': 'imageChunk',
+          'data': chunkList,
+          'index': i,
+          'total': totalChunks,
+        });
+
+        // Add a small delay to prevent overloading the send queue
+        await Future.delayed(const Duration(milliseconds: 2));
+      }
     }
   }
 
