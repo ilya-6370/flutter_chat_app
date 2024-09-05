@@ -1,16 +1,19 @@
 # flutter_chat_app
 
-A new Flutter project.
+Here you see a peer to peer chat app! That means you can send messages to your friends directly - without servers, there is nothing that could be danger to you privacy. Only you and your friends. No logs, no moderators, but full privacy!
 
-## Getting Started
+## How to use it
+### web
+You can go to https://flutter-chat-jp843lrd9-ilya6370s-projects.vercel.app/ which is a web deployed version that already works.
+### androis
+There are currently several issues about sending images from android apk application, but if you download chrome-powered application(I mean PWA) right from the web version, it will be just as good as apk.
+Apk will be posted in "releases when it's ready"
+### windows
+The build is ready and stable, soon it will be posted in "releases", But you can download the PWA app from web as well
 
-This project is a starting point for a Flutter application.
+# Thanks to:
+ilya-6370
+https://github.com/ilya-6370
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+hammerill
+https://github.com/hammerill
