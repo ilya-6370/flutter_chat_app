@@ -28,26 +28,78 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
-    peer.on('open').listen((id) => setState(() => peerId = peer.id));
-    peer
-        .on<DataConnection>('connection')
-        .listen((event) => handleConnection(event));
+
+    peer.on("open").listen((id) {
+      setState(() {
+        peerId = peer.id;
+      });
+    });
+
+    // Handle incoming connections
+    peer.on<DataConnection>("connection").listen((connection) {
+      handleConnection(connection);
+    });
   }
 
   void handleConnection(DataConnection connection) {
-    setState(() => connected = true);
-    currentConnection ??= connection;
-
-    connection.on('data').listen((data) {
-      if (data is Map && data['type'] != null) {
-        _handleData(data, connection.peer);
-      } else {
-        setState(() => messages
-            .add({'type': 'text', 'data': "Peer ${connection.peer}: $data"}));
-      }
+    setState(() {
+      connected = true;
     });
 
-    connection.on('close').listen((_) => setState(() => connected = false));
+    currentConnection = connection; // Store the current connection
+
+    // Initialize variables needed for image data handling
+    String sender = "";
+    // sender = "";
+    int totalChunks = 0;
+    Map<String, List<Uint8List?>> receivedChunks = {};
+
+    connection.on("data").listen((data) {
+      // Handle data received
+      if (data is Map) {
+        if (data['type'] == 'imageMetadata') {
+          // Metadata received
+          sender = connection.peer; // Set the sender ID
+          totalChunks = data['totalChunks']; // Total chunks to receive
+          // Initialize the list to store received chunks
+          receivedChunks[sender] = List<Uint8List?>.filled(totalChunks, null);
+        } else if (data['type'] == 'imageChunk' && sender != null) {
+          // Handle image chunk
+          List<int> chunkData =
+              List<int>.from(data['data']); // Convert data to List<int>
+          receivedChunks[sender]![data['index']] =
+              Uint8List.fromList(chunkData);
+
+          // Check if all chunks are received
+          if (!receivedChunks[sender]!.contains(null)) {
+            Uint8List fullImage = Uint8List.fromList(
+              receivedChunks[sender]!
+                  .whereType<Uint8List>()
+                  .expand((x) => x)
+                  .toList(),
+            );
+            setState(() {
+              messages.add({'type': 'image', 'data': fullImage});
+            });
+
+            // Clear the stored chunks and reset the sender
+            receivedChunks.remove(sender);
+            // sender = null;
+          }
+        }
+      } else {
+        setState(() {
+          messages.add({"type":"text", "data":"Peer ${connection.peer}: $data"});
+        });
+      }
+      
+    });
+
+    connection.on("close").listen((_) {
+      setState(() {
+        connected = false;
+      });
+    });
   }
 
   void _handleData(Map data, String sender) {
@@ -84,15 +136,18 @@ class _ChatPageState extends State<ChatPage> {
 
   void connect() {
     final peerIdToConnect = _controller.text;
-    if (peerIdToConnect.isEmpty) return;
+    if (peerIdToConnect.isNotEmpty) {
+      final connection = peer.connect(peerIdToConnect);
+      connection.on("open").listen((_) {
+        setState(() {
+          connected = true;
+          currentConnection = connection;
+        });
 
-    final connection = peer.connect(peerIdToConnect);
-    connection.on('open').listen((_) {
-      setState(() {
-        connected = true;
-        currentConnection = connection;
+        handleConnection(
+            connection); // Reuse handleConnection to listen for data
       });
-    });
+    }
   }
 
   void sendMessage(String message) {
